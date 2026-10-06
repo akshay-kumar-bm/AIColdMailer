@@ -1,177 +1,44 @@
-# 🚀 Intelligent Cold Email Automation System
+# AI Cold Email Automation
 
-## Overview
-An advanced cold email automation system that leverages AI to generate personalized, context-aware email content. Built with modern Python practices and powered by LangChain and Groq's LLM models, this system automates the entire cold email workflow from content generation to delivery.
+A Streamlit tool that scrapes target websites, uses a Groq-hosted LLM through LangChain to write a personalised cold email for each target, and sends it via Gmail SMTP while tracking status in a CSV.
 
-## 🏗️ Project Structure
-```text
-project_root/
-├── .env
-├── requirements.txt
-├── logging/
-│   └── cold_email_automation.log
-├── data/
-│   └── generated_emails.csv
-├── src/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── schemas.py
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── scraper.py
-│   │   ├── email_generator.py
-│   │   └── email_sender.py
-│   ├── llm/
-│   │   ├── __init__.py
-│   │   ├── factory.py
-│   │   └── options.py
-│   ├── ui/
-│   │   ├── __init__.py
-│   │   └── streamlit_app.py
-│   └── main.py
+## Features
+- Navigation-aware web scraper (`requests` + BeautifulSoup) that gathers page content from a target site.
+- `LangChainEmailGenerator`: prompt chain returning a structured `EmailStructure` (subject, body) via Pydantic parsing; custom prompt and purpose supplied from the UI.
+- LLM factory pattern (`src/llm/factory.py`, `options.py`) with two Groq models: `llama3-groq-70b-8192-tool-use-preview` and `llama-3.2-11b-text-preview`.
+- `GmailSender` over SMTP; results stored in `data/generated_emails.csv` with status (Pending / Sent / ...), editable from the UI.
+- Logging to `logging/cold_email_automation.log`; LangSmith tracing settings in config.
+- `cold_email.ipynb`: the original notebook prototype.
+
+## Flow
+```
+URL + recipient -> scraper -> LLM chain (Groq) -> subject/body -> CSV (Pending) -> review in UI -> Gmail SMTP -> status update
 ```
 
-## 🚀 Features
-
-- **AI-Powered Email Generation**: Utilizes advanced LLMs through LangChain for context-aware email content
-- **Smart Web Scraping**: Automatically extracts relevant information from target websites
-- **Intelligent Content Personalization**: Generates highly personalized emails based on scraped context
-- **Email Automation**: Handles email sending through Gmail SMTP
-- **Modern UI**: Clean Streamlit interface for easy operation
-- **Comprehensive Logging**: Detailed logging system for monitoring and debugging
-- **Modular Architecture**: Well-organized, maintainable code structure
-
-## 🛠️ Technology Stack
-
-- **Python 3.x**: Core programming language
-- **LangChain**: For LLM operations and chains
-- **Groq**: LLM provider for fast and efficient text generation
-- **BeautifulSoup4**: Web scraping
-- **Streamlit**: User interface
-- **Gmail SMTP**: Email delivery
-- **Pydantic**: Data validation
-- **Python-dotenv**: Environment management
-
-## 📋 Prerequisites
-
-- Python 3.8+
-- Groq API key
-- LangChain API key
-- Gmail account with App Password enabled
-
-## ⚙️ Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/cold-email-automation.git
-cd cold-email-automation
+## Structure
+```
+main.py                     # wires Config -> ColdEmailAutomation -> StreamlitUI
+src/config.py
+src/llm/{factory,options}.py
+src/models/schemas.py
+src/services/{scraper,email_generator,email_sender,automation}.py
+src/ui/streamlit_app.py
+data/generated_emails.csv   logging/*.log   cold_email.ipynb
 ```
 
-2. Create and activate virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+## Setup
 ```
-
-3. Install dependencies:
-```bash
 pip install -r requirements.txt
 ```
+`.env` variables: `GROQ_API_KEY`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`, `SENDER_EMAIL`, `SENDER_PASSWORD` (Gmail app password). Note `src/llm/factory.py` reads the Groq key from `st.secrets['GROQ_API_KEY']` (for Streamlit Cloud) - provide `.streamlit/secrets.toml` or switch to the commented `os.getenv` line when running locally.
 
-4. Set up environment variables:
-Create a `.env` file in the project root with:
-```env
-GROQ_API_KEY=your_groq_api_key
-LANGCHAIN_API_KEY=your_langchain_api_key
-SENDER_EMAIL=your_gmail@gmail.com
-SENDER_PASSWORD=your_gmail_app_password
+Run:
 ```
-
-## 🚀 Usage
-
-1. Start the Streamlit application:
-```bash
-streamlit run src/ui/streamlit_app.py
+streamlit run main.py
 ```
+(`main.py` builds the UI; the original README suggests `src/ui/streamlit_app.py`, which only defines the class.)
 
-2. In the UI:
-   - Enter target website URLs
-   - Choose LLM model (Groq LLaMA or Groq LLaMA 3.2)
-   - Customize email generation parameters
-   - Review and send generated emails
-
-## 🔧 Key Components
-
-### Email Generator
-```python
-class LangChainEmailGenerator(EmailGenerator):
-    """
-    Generates personalized emails using LangChain and Groq LLM models.
-    Features include:
-    - Context-aware content generation
-    - Multi-step refinement process
-    - JSON output parsing
-    """
-```
-
-### Web Scraper
-```python
-class NavigationScraper(WebScraper):
-    """
-    Intelligent web scraping with:
-    - Navigation link extraction
-    - Domain-aware processing
-    - Error handling
-    """
-```
-
-### Email Sender
-```python
-class GmailSender(EmailSender):
-    """
-    Handles email delivery through Gmail SMTP with:
-    - Secure authentication
-    - Error handling
-    - Delivery status tracking
-    """
-```
-
-## 📊 Monitoring and Logging
-
-The system maintains detailed logs in `logging/cold_email_automation.log`, tracking:
-- Email generation attempts and results
-- Web scraping operations
-- Email sending status
-- Error occurrences and handling
-
-## 🔒 Security
-
-- Secure credential management through environment variables
-- Gmail App Password authentication
-- Rate limiting for API calls and email sending
-- Error handling and validation
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📧 Contact
-
-Your Name - [akshaykumarbedre.bm@gmail.com](mailto:akshaykumarbedre.bm@gmail.com)
-
-
-## 🙏 Acknowledgments
-
-- LangChain for the amazing LLM framework
-- Groq for providing fast and efficient LLM models
-- Streamlit for the intuitive UI framework
+## Limitations
+- `requirements.txt` lacks `streamlit`-adjacent pins and `langchain_core.pydantic_v1` needs a compatible LangChain version; Groq preview model ids are likely retired.
+- Some generated rows in the CSV record generation errors; no rate limiting or unsubscribe handling is implemented in code.
+- Cold emailing carries legal/spam-compliance considerations.
